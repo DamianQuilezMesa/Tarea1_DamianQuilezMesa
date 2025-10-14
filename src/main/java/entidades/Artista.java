@@ -14,7 +14,7 @@ public class Artista extends Persona{
 	}
 
 
-	public Artista(Long idArt, String apodo, Especialidad especialidades) {
+	public Artista(Long idArt, String apodo, Set<Especialidad> especialidades) {
 		super();
 		this.idArt = idArt;
 		this.apodo = apodo;
@@ -42,12 +42,12 @@ public class Artista extends Persona{
 	}
 
 
-	public Especialidad getEspecialidades() {
+	public Set<Especialidad> getEspecialidades() {
 		return especialidades;
 	}
 
 
-	public void setEspecialidades(Especialidad especialidades) {
+	public void setEspecialidades(Set<Especialidad> especialidades) {
 		this.especialidades = especialidades;
 	}
 
