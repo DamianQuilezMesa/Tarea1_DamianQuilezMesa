@@ -84,6 +84,7 @@ public class Principal {
 		
 	}
 	
+	//Repetido
 	public static void mostrarEspectaculos() {
 				System.out.println("ESPECTÁCULOS:");
 		        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("espectaculo.dat"))) {
@@ -93,7 +94,7 @@ public class Principal {
 		            e.printStackTrace();
 		        }
 		
-		
+	
 	}
 
 }

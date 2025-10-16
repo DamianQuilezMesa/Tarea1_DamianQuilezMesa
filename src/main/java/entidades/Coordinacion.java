@@ -10,7 +10,6 @@ public class Coordinacion extends Persona{
 	
 	
 	public Coordinacion() {
-		super();
 	}
 
 

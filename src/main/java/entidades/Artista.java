@@ -8,9 +8,9 @@ public class Artista extends Persona{
 	private String apodo=null;
 	private Set<Especialidad>especialidades;
 	
-	
+	//asd
 	public Artista() {
-		super();
+		super(); 
 	}
 
 
