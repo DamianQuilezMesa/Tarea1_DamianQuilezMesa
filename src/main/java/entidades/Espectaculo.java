@@ -1,26 +1,31 @@
 package entidades;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
-public class Espectaculo {
+public class Espectaculo implements Serializable {
 	
-	private Long id;
+
+	private static final long serialVersionUID = 1L;
+	private long id;
 	private String nombre;
 	private LocalDate fechaini;
 	private LocalDate fechafin;
+	private long idCoord;
+	
+	
 	
 	
 	public Espectaculo() {
-		super();
 	}
 
 
-	public Espectaculo(Long id, String nombre, LocalDate fechaini, LocalDate fechafin) {
-		super();
+	public Espectaculo(long id, String nombre, LocalDate fechaini, LocalDate fechafin, long idCoord) {
 		this.id = id;
 		this.nombre = nombre;
 		this.fechaini = fechaini;
 		this.fechafin = fechafin;
+		this.idCoord = idCoord;
 	}
 
 
@@ -63,12 +68,27 @@ public class Espectaculo {
 		this.fechafin = fechafin;
 	}
 
+	public long getIdCoord() {
+		return idCoord;
+	}
+
+
+	public void setIdCoord(long idCoord) {
+		this.idCoord = idCoord;
+	}
 
 	@Override
 	public String toString() {
 		return "Espectaculo [id=" + id + ", nombre=" + nombre + ", fechaini=" + fechaini + ", fechafin=" + fechafin
 				+ "]";
 	}
+	
+	public String toStringMostrarEspectáculos() {
+		return "Espectaculo [id=" + id + ", nombre=" + nombre + ", fechaini=" + fechaini + ", fechafin=" + fechafin
+				+ "]";
+	}
+
+
 	
 	
 	

@@ -2,6 +2,8 @@ package principal;
 
 import java.util.Properties;
 import java.util.Scanner;
+
+import entidades.Espectaculo;
 import entidades.Sesion;
 import java.io.*;
 
@@ -79,6 +81,19 @@ public class Principal {
 		} else {
 			System.out.println("Atrás satanás");
 		}
+		
+	}
+	
+	public static void mostrarEspectaculos() {
+				System.out.println("ESPECTÁCULOS:");
+		        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("espectaculo.dat"))) {
+		            Espectaculo espectaculo = (Espectaculo) ois.readObject();
+		            System.out.println(espectaculo.toStringMostrarEspectáculos());
+		        } catch (Exception e) {
+		            e.printStackTrace();
+		        }
+		
+		
 	}
 
 }
