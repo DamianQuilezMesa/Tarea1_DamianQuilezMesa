@@ -18,7 +18,7 @@ public class Principal {
 		System.out.println("Fin del programa");
 
 	}
-
+//hola
 	public static void menuInvitado() {
 		String opcionMenu = "";
 
