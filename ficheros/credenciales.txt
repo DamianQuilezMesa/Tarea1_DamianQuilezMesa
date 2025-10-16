@@ -1,0 +1,10 @@
+1|luisdbb|miP@ss|luisdbb@educastur.org|Luis de Blas|España|coordinacion
+2|camila|cam1las|camilas@circo.es|Camila Sánchez|Bolivia|artista
+3|patrigc|patri|patriciagc@circo.es|Patricia González|España|artista
+4|alberto|alberto|alberto@circo.es|Alberto García|España|artista
+5|michael|Michael_33|michael@circo.es|Michael Lays|Estados Unidos|artista
+6|sonya|sonya|sonya@circo.es|Sonya Ladowick|Polonia|artista
+7|charles|$hws7^wq3mJk_d|charles@circo.es|Charles Brown|Alemania|artista
+8|rapha|rapha|raphael@circo.es|Raphael Costa|Italia|artista
+9|isabel|isabel|mijr@educastur.org|María Isabel Jardón|España|coordinacion
+10|eusebio|eusebio85|eusebio85@gmail.com|Eusebio Prados-García|Venezuela|artista

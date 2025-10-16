@@ -5,12 +5,10 @@ public class Sesion {
 	public Perfiles perfil=Perfiles.INVITADO;
 	
 	public Sesion() {
-		super();
 	}
 
 
 	public Sesion(Credenciales credenciales, Perfiles perfil) {
-		super();
 		this.credenciales = credenciales;
 		this.perfil = perfil;
 	}
