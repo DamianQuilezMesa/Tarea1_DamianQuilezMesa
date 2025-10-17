@@ -4,10 +4,5 @@
   <artifactId>TAREA1_damianquilez</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <dependencies>
-  	<dependency>
-  		<groupId>com.damianqm</groupId>
-  		<artifactId>MiPrimerMavenDamian</artifactId>
-  		<version>0.0.1-SNAPSHOT</version>
-  	</dependency>
   </dependencies>
 </project>
