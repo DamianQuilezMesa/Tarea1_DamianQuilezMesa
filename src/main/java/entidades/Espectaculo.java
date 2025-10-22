@@ -15,7 +15,6 @@ public class Espectaculo implements Serializable {
 	public Espectaculo() {
 	}
 
-
 	public Espectaculo(Long id, String nombre, LocalDate fechaini,
 			LocalDate fechafin, Long idCoord) {
 		super();
@@ -25,7 +24,6 @@ public class Espectaculo implements Serializable {
 		this.fechafin = fechafin;
 		this.idCoord = idCoord;
 	}
-
 
 	public Long getId() {
 		return id;
@@ -59,21 +57,20 @@ public class Espectaculo implements Serializable {
 		this.fechafin = fechafin;
 	}
 
-	
 	public Long getIdCoord() {
 		return idCoord;
 	}
-
 
 	public void setIdCoord(Long idCoord) {
 		this.idCoord = idCoord;
 	}
 
-
+	
 	@Override
 	public String toString() {
 		return "Espectaculo [id=" + id + ", nombre=" + nombre + ", fechaini="
-				+ fechaini + ", fechafin=" + fechafin + "]";
+				+ fechaini + ", fechafin=" + fechafin + ", idCoord=" + idCoord
+				+ "]";
 	}
 
 	public String espectaculoParaInvitados() {
