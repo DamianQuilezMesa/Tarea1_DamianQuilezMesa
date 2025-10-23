@@ -8,3 +8,5 @@
 8|rapha|rapha|raphael@circo.es|Raphael Costa|Italia|artista
 9|isabel|isabel|mijr@educastur.org|María Isabel Jardón|España|coordinacion
 10|eusebio|eusebio85|eusebio85@gmail.com|Eusebio Prados-García|Venezuela|artista
+11|p|p|p|p|España|coordinacion
+12|p1|p1|p1|p1|Sudáfrica|coordinacion

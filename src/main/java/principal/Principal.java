@@ -15,9 +15,19 @@ import java.io.ObjectOutputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Element;
 
 import entidades.Coordinacion;
 import entidades.Credenciales;
@@ -33,6 +43,7 @@ public class Principal {
 			.ofPattern("dd/MM/yyyy");
 	static File ficheroEspectaculos = new File("espectaculos.dat");
 	static File ficheroCredenciales = new File("ficheros/credenciales.txt");
+	static File ficheroPaises = new File("src/main/resources/paises.xml");
 
 	// Main con mensaje inicial y final y el metodo que inicia las
 	// funcionalidades
@@ -84,6 +95,8 @@ public class Principal {
 					sesion);
 			boolean esUsuario = verificarLoginPerfiles(nomusuario, contrasenia,
 					sesion);
+			// Si alguno de los dos boleanos anteriores es true, credenciales
+			// correctas se asigna true también
 			credencialesCorrectas = esAdmin || esUsuario;
 
 			// Si las credenciales son incorrectas lanzamos este mensaje
@@ -176,7 +189,7 @@ public class Principal {
 
 		// Comprobamos que exista el archivo, en su defecto avisamos
 		if (!archivoCredenciales.exists()) {
-			System.out.println("❌ El archivo credenciales.txt no existe.");
+			System.out.println("El archivo credenciales.txt no existe.");
 			credencialesCorrectas = false;
 		}
 
@@ -221,7 +234,7 @@ public class Principal {
 						break;
 					default:
 						// Si el perfil no es correcto, avisamos
-						System.out.println("⚠Perfil no reconocido: " + perfil);
+						System.out.println("Perfil no reconocido: " + perfil);
 						credencialesCorrectas = false;
 					}
 
@@ -230,7 +243,7 @@ public class Principal {
 			}
 			// Avisamos si hay problemas en la lectura del archivo
 		} catch (IOException e) {
-			System.out.println("❌ Error al leer el archivo de credenciales.");
+			System.out.println("Error al leer el archivo de credenciales.");
 			e.printStackTrace();
 
 		}
@@ -439,7 +452,7 @@ public class Principal {
 
 			while (!fechafin.isAfter(fechaini)) {
 				System.out.println(
-						"❌ La fecha de fin debe ser posterior a la de inicio.");
+						"La fecha de fin debe ser posterior a la de inicio.");
 				nombre = sc.nextLine().trim();
 			}
 			// Con esto restringimos que el periodo de validez sea de 1 año
@@ -453,6 +466,9 @@ public class Principal {
 				// Generamos automáticamente el id del coordinador aunque no lo
 				// almacenamos en ninguna parte aún
 				idCoord = generarNuevoIdCoordinador();
+				// Al ser admin no generamos el id automáticamente, le damos la
+				// opción de elegir entre los diferentes coordinadores y luego
+				// le asignamos dicho id
 			} else if (sesion.getPerfil() == Perfiles.ADMIN) {
 				Long candidato = seleccionarCoordinador().getIdCoord();
 				if (!esCoordinadorValido(candidato)) {
@@ -471,7 +487,7 @@ public class Principal {
 					fechafin, idCoord);
 			guardarEspectaculo(nuevoEspectaculo);
 
-			System.out.println("✅ Espectáculo creado: " + nuevoEspectaculo);
+			System.out.println("Espectáculo creado: " + nuevoEspectaculo);
 
 		} catch (Exception e) {
 			System.out.println(
@@ -479,30 +495,53 @@ public class Principal {
 		}
 	}
 
+	// Método que comprueba si existe un espectáculo con el nombre indicado
+	// Devuelve true si encuentra un espectáculo con ese nombre en el fichero
+	// Devuelve false si no lo encuentra, si el fichero no existe o está vacío
 	public static boolean existeNombreEspectaculo(String nombreBuscado) {
+
+		// Si el fichero de espectáculos no existe o está vacío devolvemos false
+		// directamente
 		if (!ficheroEspectaculos.exists() || ficheroEspectaculos.length() == 0)
 			return false;
 
 		try (ObjectInputStream ois = new ObjectInputStream(
 				new FileInputStream(ficheroEspectaculos))) {
+
+			// Leemos la lista de espectáculos almacenada en el fichero binario
 			List<Espectaculo> espectaculos = (List<Espectaculo>) ois
 					.readObject();
+
+			// Recorremos la lista de espectáculos
 			for (Espectaculo e : espectaculos) {
+				// Comparamos el nombre de cada espectáculo con el buscado
+				// (ignorando mayúsculas/minúsculas)
 				if (e.getNombre().equalsIgnoreCase(nombreBuscado)) {
+					// Si encontramos coincidencia devolvemos true
 					return true;
 				}
 			}
 		} catch (Exception e) {
-			System.out.println(
-					"⚠️ Error leyendo espectáculos: " + e.getMessage());
+			// Si ocurre cualquier error en la lectura mostramos el mensaje y
+			// devolvemos false
+			System.out.println("Error leyendo espectáculos: " + e.getMessage());
 		}
+
+		// Si no se encuentra ningún espectáculo con ese nombre devolvemos false
 		return false;
 	}
 
+	// Método que guarda un nuevo espectáculo en el fichero binario de
+	// espectáculos
+	// Si el fichero ya contiene espectáculos, primero los lee y los añade a la
+	// lista
+	// Después incorpora el nuevo espectáculo y sobrescribe el fichero con la
+	// lista completa
 	public static void guardarEspectaculo(Espectaculo nuevo) {
 		List<Espectaculo> espectaculos = new ArrayList<>();
 
-		// 1. Leer los espectáculos existentes (si el fichero ya existe)
+		// Si el fichero existe y no está vacío, cargamos los espectáculos ya
+		// guardados
 		if (ficheroEspectaculos.exists() && ficheroEspectaculos.length() > 0) {
 			try (ObjectInputStream ois = new ObjectInputStream(
 					new FileInputStream(ficheroEspectaculos))) {
@@ -514,88 +553,248 @@ public class Principal {
 			}
 		}
 
-		// 2. Añadir el nuevo espectáculo
+		// Añadimos el nuevo espectáculo a la lista
 		espectaculos.add(nuevo);
 
-		// 3. Guardar la lista completa en el fichero
+		// Guardamos la lista completa (los antiguos + el nuevo) en el fichero
+		// binario
 		try (ObjectOutputStream oos = new ObjectOutputStream(
 				new FileOutputStream(ficheroEspectaculos))) {
 			oos.writeObject(espectaculos);
-			System.out.println("Espectáculo guardado correctamente en "
-					+ "espectaculos.dat");
+			System.out.println(
+					"Espectáculo guardado correctamente en espectaculos.dat");
 		} catch (IOException e) {
 			System.out.println(
-					"❌ Error al guardar el espectáculo: " + e.getMessage());
+					"Error al guardar el espectáculo: " + e.getMessage());
 		}
 	}
 
+	// Método que carga las nacionalidades desde el fichero XML de países
+	// Devuelve un mapa con clave = código del país (ID) y valor = nombre del
+	// país
+	// Además, muestra por pantalla cada país cargado
+	public static Map<String, String> cargarNacionalidades() {
+		Map<String, String> paises = new LinkedHashMap<>(); // Usamos
+															// LinkedHashMap
+															// para mantener el
+															// orden de
+															// inserción
+
+		try {
+			// Preparamos el parser de XML
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document doc = db.parse(ficheroPaises);
+			doc.getDocumentElement().normalize();
+
+			// Recorremos todos los nodos <pais> del XML
+			NodeList lista = doc.getElementsByTagName("pais");
+			for (int i = 0; i < lista.getLength(); i++) {
+				Node nodo = lista.item(i);
+				if (nodo.getNodeType() == Node.ELEMENT_NODE) {
+					Element e = (Element) nodo;
+
+					// Extraemos el código del país (ID) y lo pasamos a
+					// mayúsculas
+					String id = e.getElementsByTagName("id").item(0)
+							.getTextContent().trim().toUpperCase();
+
+					// Extraemos el nombre del país
+					String nombre = e.getElementsByTagName("nombre").item(0)
+							.getTextContent().trim();
+
+					// Guardamos el par clave-valor en el mapa
+					paises.put(id, nombre);
+
+					// Mostramos el país cargado por pantalla
+					System.out.println(id + " - " + nombre);
+				}
+			}
+		} catch (Exception e) {
+			System.out.println("Error leyendo XML: " + e.getMessage());
+		}
+
+		return paises;
+	}
+
+	// Método que muestra por pantalla todas las nacionalidades cargadas desde
+	// el XML
+	// El usuario debe introducir el código de la nacionalidad deseada
+	// Devuelve el nombre del país correspondiente al código introducido
+	public static String seleccionarNacionalidad(Map<String, String> paises) {
+		System.out.println("Selecciona la nacionalidad (introduce el código):");
+
+		// Recorremos el mapa de países y mostramos código - nombre
+		for (Map.Entry<String, String> entry : paises.entrySet()) {
+			System.out.println(entry.getKey() + " - " + entry.getValue());
+		}
+
+		// Bucle que se repite hasta que el usuario introduzca un código válido
+		while (true) {
+			String codigo = sc.nextLine().trim().toUpperCase();
+			if (paises.containsKey(codigo)) {
+				return paises.get(codigo); // devolvemos el nombre del país
+			}
+			System.out.println("Código no válido. Inténtalo de nuevo:");
+		}
+	}
+
+	// Método que permite crear una nueva persona en el sistema
+	// Solo puede ser ejecutado por un usuario con perfil ADMIN
+	// Se piden y validan todos los datos necesarios antes de guardar en
+	// credenciales.txt
 	public static void crearPersona() {
+		String confirmacion = "";
+		LocalDate fechaSenior;
+
+		// Comprobamos que la sesión actual tenga perfil ADMIN
 		if (sesion.getPerfil() != Perfiles.ADMIN) {
 			System.out.println(
 					"Solo un ADMINISTRADOR puede crear nuevas personas.");
 			return;
 		}
 
+		// Pedimos nombre de usuario y validamos formato
 		System.out.println("Introduce nombre de usuario:");
-		String nombreUsuario = sc.nextLine().trim();
+		String nombreUsuario = sc.nextLine().trim().toLowerCase();
 
-		System.out.println("Introduce password:");
-		String password = sc.nextLine().trim();
+		// Validamos longitud, espacios y caracteres permitidos
+		while (nombreUsuario.length() <= 2 || nombreUsuario.contains(" ")
+				|| !nombreUsuario.matches("[A-Za-z0-9_]+")) {
+			System.out.println(
+					"El nombre de usuario debe contener más de 2 caracteres y no debe tener espacios en blanco, diéresis ni tildes.");
+			nombreUsuario = sc.nextLine().trim().toLowerCase();
+		}
 
-		System.out.println("Introduce email:");
-		String email = sc.nextLine().trim();
-
-		System.out.println("Introduce nombre completo:");
-		String nombre = sc.nextLine().trim();
-
-		System.out.println("Introduce nacionalidad:");
-		String nacionalidad = sc.nextLine().trim();
-
-		System.out.println(
-				"Introduce perfil (ADMINISTRADOR, COORDINACION, ARTISTA):");
-		String perfilStr = sc.nextLine().trim().toUpperCase();
-		Perfiles perfil = Perfiles.valueOf(perfilStr);
-
-		// Validar duplicados
+		// Validamos que no exista ya un usuario con ese nombre
 		while (existeUsuario(nombreUsuario)) {
 			System.out.println("Usuario ya existe.");
 			nombreUsuario = sc.nextLine().trim();
 		}
-		
+
+		// Pedimos contraseña
+		System.out.println("Introduce password:");
+		String contrasena = sc.nextLine().trim();
+
+		// Validamos que la contraseña no esté repetida (según tu lógica)
+		while (existeContrasena(contrasena)) {
+			System.out.println("Contraseña ya existe, introduce otra:");
+			contrasena = sc.nextLine().trim();
+		}
+
+		// Pedimos email
+		System.out.println("Introduce email:");
+		String email = sc.nextLine().trim();
+
+		// Validamos que no exista ya ese email
 		while (existeEmail(email)) {
 			System.out.println("Email ya existe.");
 			email = sc.nextLine().trim();
 		}
 
+		// Validamos formato del email
+		while (!validarEmail(email)) {
+			System.out.println(
+					"Formato del email incorrecto, el email debe tener este formato: x@x.xx");
+			email = sc.nextLine().trim();
+		}
+
+		// Pedimos nombre completo
+		System.out.println("Introduce nombre completo:");
+		String nombre = sc.nextLine().trim();
+
+		// Pedimos nacionalidad (se selecciona de la lista cargada desde XML)
+		System.out.println("Introduce nacionalidad:");
+		String nacionalidad = seleccionarNacionalidad(cargarNacionalidades());
+
+		// Pedimos perfil de la persona
+		System.out.println("Introduce perfil (COORDINACION, ARTISTA):");
+		String perfilTexto = sc.nextLine().trim().toUpperCase();
+		Perfiles perfil = Perfiles.valueOf(perfilTexto);
+
+		// Generamos un nuevo ID para la persona
 		Long nuevoId = generarNuevoIdPersona();
 
-		// Construir línea
-		String nuevaLinea = nuevoId + "|" + nombreUsuario + "|" + password + "|"
-				+ email + "|" + nombre + "|" + nacionalidad + "|"
-				+ perfilStr.toLowerCase();
+		// Construimos la línea que se guardará en credenciales.txt
+		String nuevaLinea = nuevoId + "|" + nombreUsuario + "|" + contrasena
+				+ "|" + email + "|" + nombre + "|" + nacionalidad + "|"
+				+ perfilTexto.toLowerCase();
 
-		try (FileWriter fw = new FileWriter("credenciales.txt", true);
-				BufferedWriter bw = new BufferedWriter(fw)) {
-			bw.write(nuevaLinea);
-			bw.newLine();
-			System.out.println("Persona creada correctamente.");
-		} catch (IOException e) {
-			System.out.println(
-					"Error escribiendo en credenciales.txt: " + e.getMessage());
+		// Si el perfil es COORDINACION pedimos datos adicionales
+		if (perfil.equals(Perfiles.COORDINACION)) {
+			boolean esSenior = false;
+			String opcion = "";
+
+			// Preguntamos si es senior
+			System.out.println("¿Es senior? 1-Si 2-No");
+			opcion = sc.nextLine();
+			switch (opcion) {
+			case "1":
+				esSenior = true;
+				break;
+			case "2":
+				esSenior = false;
+				break;
+			default:
+				System.out.println("Opción no válida, vuelve a intentarlo");
+				break;
+			}
+
+			// Si es senior pedimos la fecha desde cuándo lo es
+			if (esSenior) {
+				System.out.println(
+						"Desde cuándo? Introduce una fecha dd/mm/aaaa");
+				fechaSenior = LocalDate.parse(sc.nextLine(), formatter);
+			} else {
+				fechaSenior = null;
+			}
+
+			// Añadimos estos datos a la línea (aunque no se persistan en otro
+			// sitio)
+			nuevaLinea = nuevaLinea + "|" + esSenior + "|" + fechaSenior;
+		}
+
+		// Mostramos los datos recogidos y pedimos confirmación
+		System.out.println("Esta es la persona creada: " + nuevaLinea);
+		System.out.println("¿Son los datos correctos? (Si/No)");
+		confirmacion = sc.nextLine().trim();
+
+		// Si confirma, guardamos en credenciales.txt
+		if (confirmacion.equalsIgnoreCase("si")) {
+			try (FileWriter fw = new FileWriter(ficheroCredenciales, true);
+					BufferedWriter bw = new BufferedWriter(fw)) {
+				bw.newLine();
+				bw.write(nuevaLinea);
+				System.out.println("Persona creada correctamente.");
+			} catch (IOException e) {
+				System.out.println("Error escribiendo en credenciales.txt: "
+						+ e.getMessage());
+			}
+		} else {
+			// Si no confirma, cancelamos la operación
+			System.out.println("Operación cancelada. No se guardó la persona.");
+			return;
 		}
 	}
 
+	// Valida que el email tenga un formato x@x.xx
+	public static boolean validarEmail(String email) {
+		return email
+				.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+	}
+
+	// Comprueba si el usuario existe en el ficheroCredenciales
 	public static boolean existeUsuario(String nombreUsuarioBuscado) {
 		try (BufferedReader br = new BufferedReader(
 				new FileReader(ficheroCredenciales))) {
 			String linea;
+			// Lee las líneas y compara el parámetro (usuario) con la columna
+			// correspondiente dentro del fichero
 			while ((linea = br.readLine()) != null) {
 				String[] partes = linea.split("\\|");
-				if (partes.length == 7) {
-					String nombreUsuario = partes[1].trim();
-					if (nombreUsuario.equalsIgnoreCase(nombreUsuarioBuscado)) {
-						return true;
-					}
+				String nombreUsuario = partes[1].trim();
+				if (nombreUsuario.equalsIgnoreCase(nombreUsuarioBuscado)) {
+					return true;
 				}
 			}
 		} catch (IOException e) {
@@ -604,18 +803,40 @@ public class Principal {
 		}
 		return false;
 	}
-	
+
+	// Comprueba si el usuario existe en el ficheroCredenciales
+	public static boolean existeContrasena(String contrasenaBuscada) {
+		try (BufferedReader br = new BufferedReader(
+				new FileReader(ficheroCredenciales))) {
+			String linea;
+			// Lee las líneas y compara el parámetro (contraseña) con la columna
+			// correspondiente dentro del fichero
+			while ((linea = br.readLine()) != null) {
+				String[] partes = linea.split("\\|");
+				String nombreUsuario = partes[2].trim();
+				if (nombreUsuario.equalsIgnoreCase(contrasenaBuscada)) {
+					return true;
+				}
+			}
+		} catch (IOException e) {
+			System.out.println(
+					"Error leyendo credenciales.txt: " + e.getMessage());
+		}
+		return false;
+	}
+
+	// Comprueba si el usuario existe en el ficheroCredenciales
 	public static boolean existeEmail(String emailBuscado) {
 		try (BufferedReader br = new BufferedReader(
 				new FileReader(ficheroCredenciales))) {
 			String linea;
+			// Lee las líneas y compara el parámetro (email) con la columna
+			// correspondiente dentro del fichero
 			while ((linea = br.readLine()) != null) {
 				String[] partes = linea.split("\\|");
-				if (partes.length == 7) {
-					String email = partes[4].trim();
-					if (email.equalsIgnoreCase(emailBuscado)) {
-						return true;
-					}
+				String email = partes[4].trim();
+				if (email.equalsIgnoreCase(emailBuscado)) {
+					return true;
 				}
 			}
 		} catch (IOException e) {
@@ -623,13 +844,16 @@ public class Principal {
 					"Error leyendo credenciales.txt: " + e.getMessage());
 		}
 		return false;
-		
 	}
-	
 
+	// Método que muestra por pantalla todos los espectáculos registrados
+	// Si el fichero no existe o está vacío, avisa de que no hay espectáculos
+	// Solo se muestran los datos que puede ver un invitado (no toda la
+	// información interna)
 	public static void mostrarEspectaculos() {
 		System.out.println("ESPECTÁCULOS:");
 
+		// Comprobamos si el fichero existe y tiene contenido
 		if (!ficheroEspectaculos.exists()
 				|| ficheroEspectaculos.length() == 0) {
 			System.out.println("No hay espectáculos registrados.");
@@ -638,25 +862,31 @@ public class Principal {
 
 		try (ObjectInputStream ois = new ObjectInputStream(
 				new FileInputStream(ficheroEspectaculos))) {
-			// Leemos la lista completa
+
+			// Leemos la lista completa de espectáculos desde el fichero binario
 			List<Espectaculo> espectaculos = (List<Espectaculo>) ois
 					.readObject();
 
+			// Si la lista está vacía avisamos, en caso contrario mostramos cada
+			// espectáculo
 			if (espectaculos.isEmpty()) {
 				System.out.println("No hay espectáculos registrados.");
 			} else {
 				for (Espectaculo e : espectaculos) {
-					// Método que muestra solo lo que puede ver un invitado
+					// Mostramos la información resumida que puede ver un
+					// invitado
 					System.out.println(e.espectaculoParaInvitados());
 				}
 			}
 
 		} catch (Exception e) {
+			// Si ocurre un error en la lectura mostramos el error y un aviso
 			e.printStackTrace();
-			System.out.println("Fallo al cargar el archivo");
+			System.out.println("❌ Fallo al cargar el archivo de espectáculos.");
 		}
 	}
 
+	// Menú de gestión de personas, accesible únicamente para ADMIN
 	public static void gestionarPersonas() {
 		String opcionMenu = "";
 
@@ -669,28 +899,36 @@ public class Principal {
 
 			switch (opcionMenu) {
 			case "1":
-
+				crearPersona(); // Llama al método que crea una nueva persona
 				break;
 			case "2":
 				System.out.println("Saliendo de gestión de Personas");
 				break;
-
 			default:
-				System.out.println("Opción no valida, vuelve a intentarlo");
+				System.out.println("Opción no válida, vuelve a intentarlo");
 				break;
 			}
+			// El menú se repite mientras no se elija salir y el perfil siga
+			// siendo ADMIN
 		} while (!opcionMenu.contentEquals("2")
 				&& sesion.getPerfil().equals(Perfiles.ADMIN));
 	}
 
+	// Genera un nuevo ID para un espectáculo
+	// Busca el ID más alto en espectaculos.dat y devuelve ese valor + 1
 	public static Long generarNuevoIdEspectaculo() {
 		Long idEspectaculo = 0L;
 
+		// Si el fichero existe y contiene datos, leemos la lista de
+		// espectáculos
 		if (ficheroEspectaculos.exists() && ficheroEspectaculos.length() > 0) {
 			try (ObjectInputStream ois = new ObjectInputStream(
 					new FileInputStream(ficheroEspectaculos))) {
+
 				List<Espectaculo> espectaculos = (List<Espectaculo>) ois
 						.readObject();
+
+				// Recorremos la lista para encontrar el ID más alto
 				for (Espectaculo espectaculo : espectaculos) {
 					if (espectaculo.getId() > idEspectaculo) {
 						idEspectaculo = espectaculo.getId();
@@ -698,20 +936,25 @@ public class Principal {
 				}
 			} catch (Exception e) {
 				System.out.println(
-						"⚠️ Error leyendo espectaculos.dat: " + e.getMessage());
+						"Error leyendo espectaculos.dat: " + e.getMessage());
 			}
 		}
-		return idEspectaculo + 1;
+		return idEspectaculo + 1; // devolvemos el siguiente ID disponible
 	}
 
+	// Genera un nuevo ID para una persona
+	// Busca el ID más alto en credenciales.txt y devuelve ese valor + 1
 	public static Long generarNuevoIdPersona() {
 		Long idPersona = 0L;
 		try (BufferedReader br = new BufferedReader(
 				new FileReader(ficheroCredenciales))) {
+
 			String linea;
 			while ((linea = br.readLine()) != null) {
 				String[] partes = linea.split("\\|");
 				Long id = Long.parseLong(partes[0].trim());
+
+				// Guardamos el mayor ID encontrado
 				if (id > idPersona) {
 					idPersona = id;
 				}
@@ -720,26 +963,27 @@ public class Principal {
 			System.out.println(
 					"Error leyendo credenciales.txt: " + e.getMessage());
 		}
-		return idPersona + 1;
+		return idPersona + 1; // devolvemos el siguiente ID disponible
 	}
 
 	public static Coordinacion seleccionarCoordinador() {
 		List<Coordinacion> listaCoordinadores = new ArrayList<>();
-		Coordinacion coordinadorSeleccionado = null;
 
+		// Leo el fichero
 		try (BufferedReader br = new BufferedReader(
 				new FileReader(ficheroCredenciales))) {
 			String linea;
 			while ((linea = br.readLine()) != null) {
 				String[] partes = linea.split("\\|");
-				if (partes.length >= 7
+				if (partes.length == 7
 						&& partes[6].trim().equalsIgnoreCase("coordinacion")) {
 					Long idPersona = Long.parseLong(partes[0].trim());
-					String nombre = partes[4].trim(); // ajusta índice según tu
-														// fichero
+					String nombre = partes[4].trim();
 					Coordinacion c = new Coordinacion();
 					c.setId(idPersona);
 					c.setNombre(nombre);
+					// Añadimos a la lista estos datos para que vean las
+					// opciones de coordinadores disponibles
 					listaCoordinadores.add(c);
 				}
 			}
@@ -748,30 +992,30 @@ public class Principal {
 					"Error leyendo credenciales.txt: " + e.getMessage());
 			return null;
 		}
-
+		// Muestro el mensaje de que no hay coordinadores si fuese el caso
 		if (listaCoordinadores.isEmpty()) {
-			System.out.println("❌ No hay coordinadores disponibles.");
+			System.out.println("No hay coordinadores disponibles.");
 			return null;
 		}
 
-		// 2. Asignar idCoord incremental
+		// Genero el idCoord incrementalmente
 		for (int i = 0; i < listaCoordinadores.size(); i++) {
 			listaCoordinadores.get(i).setIdCoord((long) (i + 1));
 		}
 
-		// 3. Mostrar lista
+		// Mostramos los coordinadores
 		System.out.println("Selecciona un coordinador de los siguientes:");
-		for (Coordinacion c : listaCoordinadores) {
-			System.out.println("idCoord: " + c.getIdCoord() + " | idPersona: "
-					+ c.getId() + " | Nombre: " + c.getNombre());
+		for (Coordinacion coordinador : listaCoordinadores) {
+			System.out.println("idCoord: " + coordinador.getIdCoord()
+					+ " | idPersona: " + coordinador.getId() + " | Nombre: "
+					+ coordinador.getNombre());
 		}
 
-		// 4. Pedir selección
+		// Seleccionamos el coordinador en funcion de su id
 		System.out.println("Introduce el idCoord del Coordinador que quieres:");
 		Long seleccionarCoord = sc.nextLong();
 		sc.nextLine();
 
-		// 5. Buscar y devolver
 		for (Coordinacion c : listaCoordinadores) {
 			if (c.getIdCoord().equals(seleccionarCoord)) {
 				return c; // devolvemos directamente el coordinador encontrado
@@ -780,7 +1024,7 @@ public class Principal {
 
 		// Si llegamos aquí, no se encontró
 		System.out.println(
-				"❌ El id introducido no corresponde a un coordinador válido.");
+				"El id introducido no corresponde a un coordinador válido.");
 		return null;
 	}
 
@@ -800,7 +1044,7 @@ public class Principal {
 			}
 		} catch (IOException e) {
 			System.out.println(
-					"Error leyendo credenciales.txt: " + e.getMessage());
+					"Error leyendo ficheroCredenciales " + e.getMessage());
 		}
 		return idCoordinador + 1L;
 	}
@@ -822,7 +1066,7 @@ public class Principal {
 			}
 		} catch (IOException e) {
 			System.out.println(
-					"Error leyendo credenciales.txt: " + e.getMessage());
+					"Error leyendo ficheroCredenciales " + e.getMessage());
 		}
 		return idCoordinadorSeleccionado;
 	}
@@ -847,7 +1091,7 @@ public class Principal {
 			}
 		} catch (IOException e) {
 			System.out.println(
-					"⚠️ Error leyendo credenciales.txt: " + e.getMessage());
+					"Error leyendo ficheroCredenciales " + e.getMessage());
 		}
 		return false;
 	}
@@ -865,7 +1109,7 @@ public class Principal {
 			}
 		} catch (IOException e) {
 			System.out.println(
-					"Error leyendo credenciales.txt: " + e.getMessage());
+					"Error leyendo ficheroCredenciales " + e.getMessage());
 		}
 		return idArtista + 1;
 	}
